@@ -31,6 +31,25 @@ describe("GET /games", ()=> {
         expect(games.status).toBe(httpStatus.OK)
     });
 
+    it(" Should response 200 ", async() => {
+        const console = await createNewConsole();
+
+        const game = await createNewGame(console.id)
+        
+        const games = await api.get("/games")
+        
+        expect(games.body).toEqual([{
+            id:game.id,
+            title:game.title,
+            consoleId:game.consoleId,
+            Console:{
+                id:console.id,
+                name:console.name
+            }
+        }])
+    
+    });
+
     it(" Should response 404 if id no exist ", async () =>{
 
         const games = await api.get("/games/0")
@@ -83,7 +102,7 @@ describe("POST /games", ()=>{
 
         const wrongGame = await api.post("/games").send({
             title: "Horizon",
-            consoleId:"a"
+            consoleId:"string"
         });
         expect(wrongGame.status).toBe(httpStatus.UNPROCESSABLE_ENTITY)
     });
@@ -94,7 +113,7 @@ describe("POST /games", ()=>{
             title: "Horizon",
             consoleId:0
         });
-        expect(wrongGame.status).toBe(httpStatus.CONFLICT) //Conversar sobre a semântica
+        expect(wrongGame.status).toBe(httpStatus.CONFLICT)
     });
 
     it("Should response 409 if title already exist", async () =>{

@@ -36,6 +36,17 @@ describe("GET /console", ()=>{
 
     });
 
+    it(" Should response 200 ", async() => {
+        const console = await createNewConsole();
+        
+        const consoles = await api.get("/consoles")
+        expect(consoles.body).toEqual([{
+            id:console.id,
+            name:console.name
+        }])
+        
+    });
+
     it(" Should response 404 if id no exist ", async () =>{
 
         const consoles = await api.get("/consoles/0")

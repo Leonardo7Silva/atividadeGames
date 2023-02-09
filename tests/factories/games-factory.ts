@@ -6,7 +6,7 @@ export async function createNewGame(consoleId:number){
     return await prisma.game.create({
         data:{
             title: faker.name.firstName(),
-            consoleId:consoleId
+            consoleId,
         }
     });
 }
