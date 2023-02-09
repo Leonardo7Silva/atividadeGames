@@ -2,82 +2,125 @@ import app from "app";
 import prisma from "config/database";
 import supertest from "supertest";
 import httpStatus from "http-status";
-import { createNewConsole } from "../factories/games-factory";
+import { createNewConsole } from "../factories/consoles-factory";
+import { createNewGame } from "../factories/games-factory";
 
 const api = supertest(app);
 
-
 beforeAll(async () => {
-    await prisma.console.deleteMany();
     await prisma.game.deleteMany();
-
+    await prisma.console.deleteMany();
+    
 });
 
 
 afterAll(async () => {
-    await prisma.console.deleteMany();
     await prisma.game.deleteMany();
+    await prisma.console.deleteMany();
 });
 
 beforeEach(async () => {
-    await prisma.console.deleteMany();
     await prisma.game.deleteMany();
+    await prisma.console.deleteMany();
 });
 
-describe("GET /console", ()=>{
+describe("GET /games", ()=> {
 
-    it(" should response 200 ", async() => {
-
-        const consoles = await api.get("/consoles")
-        expect(consoles.status).toBe(httpStatus.OK)
-
+    it("Should response 200", async()=>{
+        const games = await api.get("/games");
+        expect(games.status).toBe(httpStatus.OK)
     });
 
-    it(" shold response 404 if id no exist ", async () =>{
+    it(" Should response 404 if id no exist ", async () =>{
 
-        const consoles = await api.get("/consoles/0")
-        expect(consoles.status).toBe(httpStatus.NOT_FOUND)
+        const games = await api.get("/games/0")
+        expect(games.status).toBe(httpStatus.NOT_FOUND)
     });
 
-    it(" shold response 200 if id exist", async () => {
+    it("Should response 200 if id exist", async()=>{
 
         const newConsole = await createNewConsole();
-
-        const videogame = await api.get(`/consoles/${newConsole.id}`);
-
-        expect(videogame.body).toEqual({
-             id:newConsole.id,
-            name:newConsole.name
-        });
-
-        expect(videogame.status).toBe(httpStatus.OK)
         
+        const newGame = await createNewGame(newConsole.id);
+        
+        const findGame = await api.get(`/games/${newGame.id}`);
 
-    }) 
+        expect(findGame.body).toEqual({
+            id: newGame.id,
+            title: newGame.title,
+            consoleId: newGame.consoleId
+        });
+    
+    });
+});
 
+describe("POST /games", ()=>{
 
-})
-
-describe("POST /consoles", ()=>{
-
-    it("shold response 422 if send body without name", async () =>{
-        const newConsole = await api.post("/consoles").send({});
-        expect(newConsole.status).toBe(httpStatus.UNPROCESSABLE_ENTITY)
+    it("Should response 422 if send body without title", async () =>{
+        const newGame = await api.post("/games").send({
+            consoleId:1
+        });
+        expect(newGame.status).toBe(httpStatus.UNPROCESSABLE_ENTITY)
     });
 
-    it("shold response 409 if name already exist", async () =>{
-        const newConsole = await createNewConsole();
-        const consoleRepetido = await api.post("/consoles").send({
-            name: newConsole.name
+    it("Should response 422 if send body without consoleId", async () =>{
+        const newGame = await api.post("/games").send({
+            title:"Horizon"
         });
-        expect(consoleRepetido.status).toBe(httpStatus.CONFLICT)
+        expect(newGame.status).toBe(httpStatus.UNPROCESSABLE_ENTITY)
     });
 
-    it("shold response 201 if body is correct", async () => {
-        const newconsole = await api.post("/consoles").send({
-            name:"PS4"
+    it("Should response 422 if title is not a string", async () =>{
+
+        const wrongGame = await api.post("/games").send({
+            title: 0,
+            consoleId:1
+        });
+        expect(wrongGame.status).toBe(httpStatus.UNPROCESSABLE_ENTITY)
+    });
+
+    it("Should response 422 if consoleId is not a number", async () =>{
+
+        const wrongGame = await api.post("/games").send({
+            title: "Horizon",
+            consoleId:"a"
+        });
+        expect(wrongGame.status).toBe(httpStatus.UNPROCESSABLE_ENTITY)
+    });
+
+    it("Should response 409 if consoleId not exist", async () =>{
+
+        const wrongGame = await api.post("/games").send({
+            title: "Horizon",
+            consoleId:0
+        });
+        expect(wrongGame.status).toBe(httpStatus.CONFLICT) //Conversar sobre a semântica
+    });
+
+    it("Should response 409 if title already exist", async () =>{
+
+        const console = await createNewConsole();
+        const game = await createNewGame(console.id);
+
+
+        const wrongGame = await api.post("/games").send({
+            title: game.title,
+            consoleId:console.id
+        });
+        expect(wrongGame.status).toBe(httpStatus.CONFLICT)
+    });
+
+    it("Should response 201 if body is correct", async () => {
+
+        const console = await createNewConsole();
+        const newGame = await api.post("/games").send({
+            title:"Horizon",
+            consoleId: console.id
         });
 
-        expect(newconsole.status).toBe(httpStatus.CREATED)
+        expect(newGame.status).toBe(httpStatus.CREATED);
     })
-})
+
+
+
+});
